@@ -19,3 +19,19 @@ xt_ %+ %2:
 section .text
 %2 %+ _impl:
 %endmacro
+
+%macro colon 2
+colon %1, %2, 0
+%endmacro
+
+%macro colon 3
+section .data
+w_ %+ %2:
+    %%link dq link
+%define link %%link
+    db %1, 0
+    db %3
+xt_ %+ %2:
+	dq docol
+%endmacro
+

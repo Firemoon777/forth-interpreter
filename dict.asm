@@ -38,6 +38,7 @@ cfa:
 		mov rax, rdi
 	ret
 
+; native block
 native '+', plus
 	mov rax, rsp
 	add rax, 1*word_size
@@ -215,13 +216,46 @@ native '!', data_write
 	jmp next
 
 native 'exit', close_int
-	jmp exit
+	jmp close
 	
+; colon block
+colon '>', greater
+	dq swap_stack_impl
+	dq less_impl
+	dq exit
+	
+colon 'or', log_or
+    dq      negation_impl
+    dq      swap_stack_impl
+    dq      negation_impl
+    dq      log_and_impl
+    dq      negation_impl
+    dq      exit
+	
+; data block
 section .data
 	last_word: dq link 
+	xt_docol: dq docol
+	xt_exit: dq exit
 	
+; error handling block
 error_underflow:
 	mov rdi, underflow
 	call print_string
+	jmp next
+	
+; Начало всех colon-слов
+docol:
+	mov pc, xt_interpreter
+	;sub rstack, 8
+	;mov [rstack], pc
+	;add w, 8
+	;mov pc, w
+	jmp next
+	
+; конец всех colon-слов
+exit:
+	mov pc, [rstack]
+	add rstack, 8
 	jmp next
 	

@@ -1,5 +1,6 @@
 %define pc r15
 %define w  r14
+%define rstack r13
 
 %include 'lib.inc'
 %include 'macro.asm'
@@ -10,15 +11,19 @@ section .data
     xt_interpreter:     dq .interpreter
     .interpreter:       dq interpreter_loop
     
-    stackHead: 			dq 0
     undefined:          db 'Word is undefined', 10, 0
     underflow:			db 'Stack underflow exception', 10, 0
 
+section .bss
+	retstack: resq 65536 
+	stackHead:  resq 1
+	
 section .text
 global _start
 _start:
 	; Инициализация интерпретатора
 	mov [stackHead], rsp
+	mov rstack, retstack + 65536*word_size
 	mov pc, xt_interpreter
 	jmp     next
 
@@ -56,7 +61,8 @@ next:
 	mov w, [w]
 	jmp [w]
 	
-exit:
+close:
 	mov rax, 60
 	xor rdi, rdi
 	syscall
+
