@@ -7,14 +7,14 @@ string_length:
 	push rbx
 	mov rbx, rdi
 	xor rax, rax
-.loop:
-	cmp byte[rbx + rax], 0
-	je .finish
-	inc rax
-	jmp .loop
-.finish:
-	pop rbx
-	ret
+	.loop:
+		cmp byte[rbx + rax], 0
+		je .finish
+		inc rax
+		jmp .loop
+	.finish:
+		pop rbx
+		ret
 
 ; Вывести нуль-терминированную строку из памяти на экран
 ; rdi -- указатель на строку
@@ -58,7 +58,6 @@ print_newline:
 
 ; Вывод беззнакового 8-байтного
 ; rdi -- число для вывода
-; Добавить выввод через pring string
 print_uint:
 	mov r9, rsp
 
@@ -67,14 +66,14 @@ print_uint:
 	
 	mov r8, 10
 	mov rax, rdi
-.loop:
-	xor rdx, rdx
-	div r8
-	add rdx, 48
-	dec rsp
-	mov byte[rsp], dl
-	test rax, rax
-	jnz .loop
+	.loop:
+		xor rdx, rdx
+		div r8
+		add rdx, 48
+		dec rsp
+		mov byte[rsp], dl
+		test rax, rax
+		jnz .loop
 	
 	mov rdi, rsp
 	call print_string
@@ -92,8 +91,8 @@ print_int:
 	call print_char
 	pop rdi
 	neg rdi
-.unsigned:
-	call print_uint
+	.unsigned:
+		call print_uint
 	ret
 	
 ; Сравнение строк
@@ -103,17 +102,17 @@ string_equals:
     xor rax, rax
     xor r8, r8
     xor r9, r9
-.loop:
-	mov r8b, byte[rdi]
-	mov r9b, byte[rsi]
-	cmp r8, r9
-	jne .fail
-	inc rdi
-	inc rsi
-	test r8, r8
-	jnz .loop
+	.loop:
+		mov r8b, byte[rdi]
+		mov r9b, byte[rsi]
+		cmp r8, r9
+		jne .fail
+		inc rdi
+		inc rsi
+		test r8, r8
+		jnz .loop
 	inc rax
-.fail:
+	.fail:
     ret
 
 ; Чтение символа из stdin
@@ -139,28 +138,29 @@ section .text
 ; Пропуск первых пробельных символов и чтение слова до пробельного символа
 ; rax -- возвращает указатель на строку
 ; rdx -- длина прочитанного слова
-; Оптимизировать длину строки, удалить лишний символ
-
 read_word:
 	xor r8, r8
 	mov r8, word_buffer
-.skip:
-	call read_char
-	test rax, rax
-	jz .finish
-	cmp rax, 32
-	jle .skip
-.read_next:
-	mov [r8], rax
-	inc r8
-	call read_char
-	cmp rax,  32
-	jg .read_next
-.finish:
-	mov rdi, word_buffer
-	call string_length
-	mov rdx, rax
-	mov rax, word_buffer
+	; Чтение до пробельного символа
+	.skip:
+		call read_char
+		test rax, rax
+		jz .finish
+		cmp rax, 32
+		jle .skip
+	; Чтение слова
+	.read_next:
+		mov [r8], rax
+		inc r8
+		call read_char
+		cmp rax,  32
+		jg .read_next
+		; Вычисление длины строки и возврат результат
+	.finish:
+		mov rdi, word_buffer
+		call string_length
+		mov rdx, rax
+		mov rax, word_buffer
     ret
 
 ; rdi points to a string
@@ -170,21 +170,22 @@ parse_uint:
     xor rdx, rdx
     xor r10, r10
     mov r8, 10
-.loop:
-    cmp byte[rdi], 48
-    jl .finish
-    cmp byte[rdi], 57
-    jg .finish
-    inc r10
-    mul r8
-    xor r9, r9
-    mov r9b, byte[rdi]
-    sub r9, 48
-    add rax, r9
-    inc rdi
-    jmp .loop
-.finish:
-	mov rdx, r10
+	.loop:
+		cmp byte[rdi], 48
+		jl .finish
+		cmp byte[rdi], 57
+		jg .finish
+		inc r10
+		mul r8
+		xor r9, r9
+		mov r9b, byte[rdi]
+		sub r9, 48
+		add rax, r9
+		inc rdi
+		jmp .loop
+		
+	.finish:
+		mov rdx, r10
     ret
 
 ; rdi points to a string
@@ -195,24 +196,24 @@ parse_int:
     je .sign
 	call parse_uint
 	ret
-.sign:
-	inc rdi
-	call parse_uint
-	neg rax
-	inc rdx
-.finish:
+	.sign:
+		inc rdi
+		call parse_uint
+		neg rax
+		inc rdx
+	.finish:
     ret 
 
 
 string_copy:
 	push rcx
-.loop:
-	xor rcx, rcx
-	mov cl, byte[rdi]
-	mov [rsi], rcx
-	inc rdi
-	inc rsi
-	test rcx, rcx
-	jnz .loop
+	.loop:
+		xor rcx, rcx
+		mov cl, byte[rdi]
+		mov [rsi], rcx
+		inc rdi
+		inc rsi
+		test rcx, rcx
+		jnz .loop
 	pop rcx
 	ret
