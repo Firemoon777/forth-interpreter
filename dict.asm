@@ -191,6 +191,28 @@ native 'number', number
 	call parse_int
 	push rax
 	jmp next
+	
+native 'mem', mem
+	push qword[stackHead]
+	jmp next
+	
+native '@', data_read
+	cmp rsp, [stackHead]
+	jge error_underflow
+	pop rax
+	mov rax, [rax]
+	push rax
+	jmp next
+	
+native '!', data_write
+	mov rax, rsp
+	add rax, 1*word_size
+	cmp rax, [stackHead]
+	jge error_underflow
+	pop rax
+	pop rdx
+	mov [rax], rdx
+	jmp next
 
 native 'exit', close_int
 	jmp exit
