@@ -49,11 +49,10 @@ print_char:
 
 ; Вывод переноса строки
 print_newline:
-	mov rax, 1
-	mov rdi, 1
-	mov rdx, 1
-	mov rsi, newline_char
-	syscall
+	push rdi
+	mov rdi, '/'
+	call print_char
+	pop rdi
 	ret
 
 ; Вывод беззнакового 8-байтного
@@ -99,6 +98,8 @@ print_int:
 ; rax -- 1, если равны
 ; r8, r9
 string_equals:
+	push rdi
+	push rsi
     xor rax, rax
     xor r8, r8
     xor r9, r9
@@ -113,6 +114,8 @@ string_equals:
 		jnz .loop
 	inc rax
 	.fail:
+	pop rsi
+	pop rdi
     ret
 
 ; Чтение символа из stdin
@@ -130,8 +133,6 @@ read_char:
 
 section .data
 	word_buffer times 256 db 0
-	newline_char: db 10
-	input_char: db 0
 
 section .text
 
@@ -166,6 +167,7 @@ read_word:
 ; rdi points to a string
 ; returns rax: number, rdx : length
 parse_uint:
+	push rdi
     xor rax, rax
     xor rdx, rdx
     xor r10, r10
@@ -186,6 +188,7 @@ parse_uint:
 		
 	.finish:
 		mov rdx, r10
+	pop rdi
     ret
 
 ; rdi points to a string
