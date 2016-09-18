@@ -27,6 +27,7 @@ section .bss
 	stackHead:  		resq 1
 	ustackHead:  		resq 1
 	state:      		resq 1
+	branch:				resq 1
 	
 section .text
 global _start
@@ -48,7 +49,8 @@ interpreter_loop:
 	call read_word
 	mov rdi, rax
 	call find_word
-	
+	cmp rax, branch
+	je unknown
 	test rax, rax
 	jnz execute
 	call parse_int
@@ -83,13 +85,28 @@ compiler_loop:
 	.compile:
 		mov [here], rax
 		add here, word_size
+		cmp rax, xt_branch
+		je .branch_write
+		cmp rax, xt_branch0
+		je .branch_write
+	jmp compiler_loop
+	.branch_write:
+		mov byte[branch], 1
 	jmp compiler_loop
 	.check_number:
 		call parse_int
 		test rdx, rdx
 		jz unknown
+		mov cl, byte[branch]
+		test cl, cl
+		jnz .branch
 		mov qword[here], xt_lit
 		add here, word_size
+		mov [here], rax
+		add here, word_size
+	jmp compiler_loop
+	.branch:
+		mov byte[branch], 0
 		mov [here], rax
 		add here, word_size
 	jmp compiler_loop
@@ -103,6 +120,10 @@ unknown:
 execute:
 	mov rdi, rax
 	call cfa
+	cmp rax, xt_branch
+	je unknown
+	cmp rax, xt_branch0
+	je unknown
 	mov w, rax
 	mov [program_stub], rax
 	mov pc, program_stub

@@ -276,6 +276,24 @@ native 'lit', lit
     push    qword[pc]
     add     pc, word_size
     jmp     next
+    
+native 'branch', branch
+	mov rax, qword[pc]
+	inc rax
+	mov rcx, word_size
+	mul rcx
+	add pc, rax
+	jmp next
+	
+native 'branch0', branch0
+	pop rcx
+	push rcx
+	test rcx, rcx
+	jnz .finish
+	jmp branch_impl
+	.finish:
+	add pc, word_size
+	jmp next
 	
 ; data block
 section .data
