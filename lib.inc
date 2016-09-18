@@ -50,7 +50,7 @@ print_char:
 ; Вывод переноса строки
 print_newline:
 	push rdi
-	mov rdi, '/'
+	mov rdi, 10
 	call print_char
 	pop rdi
 	ret
@@ -213,7 +213,7 @@ string_copy:
 	.loop:
 		xor rcx, rcx
 		mov cl, byte[rdi]
-		mov [rsi], rcx
+		mov byte[rsi], cl
 		inc rdi
 		inc rsi
 		test rcx, rcx

@@ -4,6 +4,7 @@ section .text
 ; rdi -- ссылка на слово
 ; rax -- адрес начала слова
 find_word:
+	;push rdi
 	xor rax, rax
 	mov rsi, [last_word]
 	.loop:
@@ -21,6 +22,7 @@ find_word:
 		ret
 	.finish:
 		mov rax, rsi		
+	;pop rdi
 	ret
 
 ; Возвращает адрес xt от слова, на который указывает rdi
@@ -37,7 +39,8 @@ cfa:
 		add rdi, 2
 		mov rax, rdi
 	ret
-
+	
+; compiler mode
 ; native block
 native '+', plus
 	mov rax, rsp
@@ -194,7 +197,7 @@ native 'number', number
 	jmp next
 	
 native 'mem', mem
-	push qword[stackHead]
+	push qword[ustackHead]
 	jmp next
 	
 native '@', data_read
@@ -214,23 +217,65 @@ native '!', data_write
 	pop rdx
 	mov [rax], rdx
 	jmp next
+	
+native '.S', show_stack
+	mov rax, rsp
+	.loop:
+		cmp rax, [stackHead]
+		jge next
+		mov rdi, [rax]
+		push rax
+		call print_int
+		call print_newline
+		pop rax
+		add rax, 8
+		jmp .loop
+	
 
 native 'exit', close_int
 	jmp close
 	
 ; colon block
 colon '>', greater
-	dq swap_stack_impl
-	dq less_impl
-	dq exit
+	dq xt_swap_stack
+	dq xt_less
+	dq xt_exit
 	
 colon 'or', log_or
-    dq      negation_impl
-    dq      swap_stack_impl
-    dq      negation_impl
-    dq      log_and_impl
-    dq      negation_impl
-    dq      exit
+    dq      xt_negation
+    dq      xt_swap_stack
+    dq      xt_negation
+    dq      xt_log_and
+    dq      xt_negation
+    dq      xt_exit
+    
+; compiler mode
+native ':', col, 1
+	mov byte[state], 1
+	mov rdi, [last_word]
+	mov [here], rdi
+	mov qword[last_word], here 
+	add  here, word_size
+	call read_word
+	mov rdi, rax
+	mov rsi, here
+	call string_copy
+	mov here, rsi
+	inc here
+	mov qword[here], docol
+	add here, word_size
+	jmp next
+	
+native ';', semicolon, 1
+	mov byte[state], 0
+	mov qword[here], xt_exit
+	add here, word_size
+	jmp next
+
+native 'lit', lit
+    push    qword[pc]
+    add     pc, word_size
+    jmp     next
 	
 ; data block
 section .data
@@ -246,11 +291,10 @@ error_underflow:
 	
 ; Начало всех colon-слов
 docol:
-	mov pc, xt_interpreter
-	;sub rstack, 8
-	;mov [rstack], pc
-	;add w, 8
-	;mov pc, w
+	sub rstack, 8
+	mov [rstack], pc
+	add w, 8
+	mov pc, w
 	jmp next
 	
 ; конец всех colon-слов
