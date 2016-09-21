@@ -76,6 +76,7 @@ compiler_loop:
 	mov rdi, rax
 	call cfa
 	mov dil, byte[rax-1]
+	and dil, 0x01
 	test dil, dil
 	jz .compile ; Прыжок, если нужна компиляция
 	mov w, rax
@@ -85,10 +86,10 @@ compiler_loop:
 	.compile:
 		mov [here], rax
 		add here, word_size
-		cmp rax, xt_branch
-		je .branch_write
-		cmp rax, xt_branch0
-		je .branch_write
+		mov dil, byte[rax-1]
+		and dil, 0x02
+		test dil, dil
+		jnz .branch_write
 	jmp compiler_loop
 	.branch_write:
 		mov byte[branch], 1
@@ -100,6 +101,7 @@ compiler_loop:
 		mov cl, byte[branch]
 		test cl, cl
 		jnz .branch
+		add here, word_size
 		mov qword[here], xt_lit
 		add here, word_size
 		mov [here], rax
@@ -120,10 +122,10 @@ unknown:
 execute:
 	mov rdi, rax
 	call cfa
-	cmp rax, xt_branch
-	je unknown
-	cmp rax, xt_branch0
-	je unknown
+	mov dil, byte[rax-1]
+	and dil, 0x02
+	test dil, dil
+	jnz unknown
 	mov w, rax
 	mov [program_stub], rax
 	mov pc, program_stub

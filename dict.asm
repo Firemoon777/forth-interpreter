@@ -76,8 +76,9 @@ native '/', division
 	add rax, 1*word_size
 	cmp rax, [stackHead]
 	jge error_underflow
-	pop rax
 	pop rcx
+	pop rax
+	cqo
 	idiv rcx
 	push rax
 	jmp next
@@ -277,7 +278,7 @@ native 'lit', lit
     add     pc, word_size
     jmp     next
     
-native 'branch', branch
+native 'branch', branch, 2
 	mov rax, qword[pc]
 	inc rax
 	mov rcx, word_size
@@ -285,7 +286,7 @@ native 'branch', branch
 	add pc, rax
 	jmp next
 	
-native 'branch0', branch0
+native 'branch0', branch0, 2
 	pop rcx
 	push rcx
 	test rcx, rcx
