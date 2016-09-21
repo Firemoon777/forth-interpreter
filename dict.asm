@@ -22,21 +22,6 @@ find_word:
 	.finish:
 		mov rax, rsi		
 	ret
-
-; Возвращает адрес xt от слова, на который указывает rdi
-cfa:
-	xor rax, rax
-	add rdi, word_size
-	.loop:
-		mov al, [rdi]
-		test al, 0xFF
-		jz .finish
-		inc rdi
-		jmp .loop
-	.finish:
-		add rdi, 2
-		mov rax, rdi
-	ret
 	
 ; compiler mode
 ; native block
@@ -236,7 +221,7 @@ native 'exit', close
 	jmp close
 	
 ; colon block
-colon '>', greater
+colon '>', more
 	dq xt_swap_stack
 	dq xt_less
 	dq xt_exit
@@ -277,7 +262,7 @@ native 'lit', lit
     add     pc, word_size
     jmp     next
     
-native 'branch', branch
+native 'branch', branch, 2
 	mov rax, qword[pc]
 	inc rax
 	mov rcx, word_size
@@ -285,7 +270,7 @@ native 'branch', branch
 	add pc, rax
 	jmp next
 	
-native 'branch0', branch0
+native 'branch0', branch0, 2
 	pop rcx
 	;push rcx
 	test rcx, rcx
@@ -331,18 +316,21 @@ native 'find', find
 	push rax
 	jmp next
 	
-native 'cfa_bootstrap', cfa_bootstrap
+native 'cfa', cfa
 	xor rax, rax
 	pop rdi
 	add rdi, word_size
 	.loop:
 		mov al, [rdi]
-		test al, 0xFF
+		test al, al
 		jz .finish
 		inc rdi
 		jmp .loop
 	.finish:
 		add rdi, 2
+		push rdi
+		mov dil, [rdi-1]
+		and rdi, 0xFF
 		push rdi
 	jmp next
 
@@ -377,15 +365,13 @@ colon '"', get_xt
 	dq xt_find
 	dq xt_branch0
 	dq 1
-	dq xt_cfa_bootstrap
+	dq xt_cfa
 	dq xt_exit
 	
 ; data block
 section .data
-	;last_word: dq link 
 	;xt_docol: dq docol
 	xt_exit: dq exit
-	xt_cfa: dq cfa
 	
 ; error handling block
 error_underflow:

@@ -9,8 +9,16 @@
 
 section .data
     program_stub:       dq 0
-    ;bootstrap_interpreter_loop: dq xt_bootstrap_interpreter_loop
 xt_bootstrap_interpreter_loop:
+	; Проверка режима работы
+	dq xt_lit
+	dq state
+	dq xt_data_read
+	dq xt_branch0 
+	dq 2
+	dq xt_branch
+	dq 28
+	; Основной цикл 
     dq xt_lit
 	dq current_word
 	dq xt_dup
@@ -19,9 +27,14 @@ xt_bootstrap_interpreter_loop:
 	dq xt_find
 	dq xt_dup
 	dq xt_branch0 ; Если слова нет в словаре, то переходим к обработке цифр
-	dq 2
+	dq 7
 ; Выполнение команды
-	dq xt_cfa_bootstrap 
+	dq xt_cfa
+	dq xt_lit
+	dq 2
+	dq xt_less
+	dq xt_branch0
+	dq 8
 	dq xt_exec
 ; Обработка цифр
 	dq xt_drop
@@ -37,7 +50,50 @@ xt_bootstrap_interpreter_loop:
 	dq undefined
 	dq xt_write
 	dq xt_b_loop
+; Цикл компилятора
+xt_bootstrap_compiler_loop:
+	; основной цикл
+	dq xt_lit
+	dq current_word
+	dq xt_dup
+	dq xt_wordreader
+	dq xt_drop
+	dq xt_find
+	dq xt_dup
+	dq xt_branch0 ; Если слова нет в словаре, то обработка числа
+	dq 10
+; Проверка слова на флаг 1
+	dq xt_cfa
+	dq xt_lit
+	dq 1
+	dq xt_minus
+	dq xt_branch0 ; Если установлен флаг 1, то исполнение
+	dq 2
+; Компиляция
+	dq xt_comma
+	dq xt_b_loop
+; Исполнение
+	dq xt_exec
+	dq xt_b_loop
+; Обработка числа
+	dq xt_drop
+	dq xt_lit
+	dq current_word
+	dq xt_parse
+	dq xt_branch0 ; неизвестное слово
+	dq 5
 	
+	; Предыдущее слово не branch*
+	dq xt_lit
+	dq xt_lit
+	dq xt_comma
+	dq xt_comma
+	dq xt_b_loop
+; Неизвестное слово
+	dq xt_lit
+	dq undefined
+	dq xt_write
+	dq xt_b_loop
 	
     undefined:          db 'Word is undefined', 10, 0
     underflow:			db 'Stack underflow exception', 10, 0
