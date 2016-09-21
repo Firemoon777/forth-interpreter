@@ -9,17 +9,42 @@
 
 section .data
     program_stub:       dq 0
-    xt_interpreter:     dq .interpreter
-    .interpreter:       dq interpreter_loop
-    
-    xt_compiler:     	dq .compiler
-    .compiler:       	dq compiler_loop
-    
+    ;bootstrap_interpreter_loop: dq xt_bootstrap_interpreter_loop
+xt_bootstrap_interpreter_loop:
+    dq xt_lit
+	dq current_word
+	dq xt_dup
+	dq xt_wordreader
+	dq xt_drop
+	dq xt_find
+	dq xt_dup
+	dq xt_branch0 ; Если слова нет в словаре, то переходим к обработке цифр
+	dq 2
+; Выполнение команды
+	dq xt_cfa_bootstrap 
+	dq xt_exec
+; Обработка цифр
+	dq xt_drop
+	dq xt_lit
+	dq current_word
+	dq xt_parse
+	dq xt_branch0
+	dq 1
+	dq xt_b_loop
+; Слово не найдено, цифрой не является
+	dq xt_drop
+	dq xt_lit
+	dq undefined
+	dq xt_write
+	dq xt_b_loop
+	
+	
     undefined:          db 'Word is undefined', 10, 0
     underflow:			db 'Stack underflow exception', 10, 0
-    interpreter_msg		db 'Switch to interpreter mode', 10, 0
-    compiler_msg		db 'Switch to compiler mode', 10, 0
-
+    interpreter_msg:	db 'Switch to interpreter mode', 10, 0
+    compiler_msg:		db 'Switch to compiler mode', 10, 0
+	xt_b_loop:			dq b_loop
+	
 section .bss
 	retstack: 			resq 65536 
 	userstack: 			resq 65536
@@ -28,6 +53,7 @@ section .bss
 	ustackHead:  		resq 1
 	state:      		resq 1
 	branch:				resq 1
+	current_word:		resq 256
 	
 section .text
 global _start
@@ -37,96 +63,10 @@ _start:
 	mov rstack, retstack + 65536*word_size
 	mov qword[ustackHead], userstack + 65536*word_size
 	mov here, dictionary
-	mov pc, xt_interpreter
-	jmp     next
-
-; Цикл интерпретатора
-interpreter_loop:
-	mov al, byte[state]
-	test al, al
-	jnz compiler_loop
+	jmp b_loop
 	
-	call read_word
-	mov rdi, rax
-	call find_word
-	cmp rax, branch
-	je unknown
-	test rax, rax
-	jnz execute
-	call parse_int
-	test rdx, rdx
-	jz unknown
-	push rax
-	jmp interpreter_loop
-
-; Цикл компилятора
-compiler_loop:
-	;mov rdi, compiler_msg
-	;call print_string
-	mov al, byte[state]
-	test al, al
-	jz interpreter_loop
-	
-	call read_word
-	mov rdi, rax
-	call find_word
-	
-	test rax, rax
-	jz .check_number
-	mov rdi, rax
-	call cfa
-	mov dil, byte[rax-1]
-	test dil, dil
-	jz .compile ; Прыжок, если нужна компиляция
-	mov w, rax
-	mov [program_stub], rax
-	mov pc, program_stub
-	jmp next
-	.compile:
-		mov [here], rax
-		add here, word_size
-		cmp rax, xt_branch
-		je .branch_write
-		cmp rax, xt_branch0
-		je .branch_write
-	jmp compiler_loop
-	.branch_write:
-		mov byte[branch], 1
-	jmp compiler_loop
-	.check_number:
-		call parse_int
-		test rdx, rdx
-		jz unknown
-		mov cl, byte[branch]
-		test cl, cl
-		jnz .branch
-		mov qword[here], xt_lit
-		add here, word_size
-		mov [here], rax
-		add here, word_size
-	jmp compiler_loop
-	.branch:
-		mov byte[branch], 0
-		mov [here], rax
-		add here, word_size
-	jmp compiler_loop
-
-unknown:
-	mov rdi, undefined
-	call print_string
-	mov pc, xt_interpreter
-	jmp     next
-
-execute:
-	mov rdi, rax
-	call cfa
-	cmp rax, xt_branch
-	je unknown
-	cmp rax, xt_branch0
-	je unknown
-	mov w, rax
-	mov [program_stub], rax
-	mov pc, program_stub
+b_loop:
+	mov pc, xt_bootstrap_interpreter_loop
 	jmp next
 
 next: 
@@ -134,9 +74,12 @@ next:
 	add pc, 8
 	mov w, [w]
 	jmp [w]
-	
+
 close:
 	mov rax, 60
 	xor rdi, rdi
 	syscall
+
+section .data
+	last_word: dq link 
 
