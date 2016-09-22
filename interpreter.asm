@@ -17,7 +17,7 @@ section .data
     
     undefined:          db 'Word is undefined', 10, 0
     underflow:			db 'Stack underflow exception', 10, 0
-    interpreter_msg		db 'Switch to interpreter mode', 10, 0
+    interpreter_msg		db 'forth > ', 0
     compiler_msg		db 'Switch to compiler mode', 10, 0
 
 section .bss
@@ -45,7 +45,10 @@ interpreter_loop:
 	mov al, byte[state]
 	test al, al
 	jnz compiler_loop
-	
+		
+	mov rdi, interpreter_msg
+	call print_string
+		
 	call read_word
 	mov rdi, rax
 	call find_word
@@ -101,7 +104,6 @@ compiler_loop:
 		mov cl, byte[branch]
 		test cl, cl
 		jnz .branch
-		add here, word_size
 		mov qword[here], xt_lit
 		add here, word_size
 		mov [here], rax

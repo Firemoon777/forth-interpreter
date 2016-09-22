@@ -138,12 +138,12 @@ native 'rot', rot
 	add rax, 2*word_size
 	cmp rax, [stackHead]
 	jge error_underflow
-	pop rcx
-	pop rdx
-	pop rax
-	push rdx
-	push rax
-	push rcx
+	pop rcx ; 3
+	pop rdx ; 2
+	pop rax ; 1
+	push rdx ; 2
+	push rcx ; 3
+	push rax ; 1
 	jmp next
 	
 native 'swap', swap_stack
@@ -283,12 +283,16 @@ native 'branch', branch, 2
 	inc rax
 	mov rcx, word_size
 	mul rcx
+	js .back
 	add pc, rax
+	jmp next
+	.back:
+	neg rax
+	sub pc, rax
 	jmp next
 	
 native 'branch0', branch0, 2
 	pop rcx
-	push rcx
 	test rcx, rcx
 	jnz .finish
 	jmp branch_impl
